@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MarketHub Admin — Manage Users</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>*{font-family:'Inter',sans-serif}</style>
+</head>
+<body class="bg-zinc-950 text-zinc-100 min-h-screen">
+<div class="max-w-[1100px] mx-auto px-5 py-8">
+<div class="flex items-center justify-between mb-8">
+<div class="flex items-center gap-3"><div class="w-9 h-9 bg-white text-black rounded-xl grid place-items-center font-black">M</div><div><div class="font-bold">MarketHub Admin</div><div class="text-[11px] text-zinc-500">Owner Dashboard</div></div></div>
+<div class="flex items-center gap-2"><button onclick="toggleAdminDark()" id="adminDarkBtn" class="w-9 h-9 grid place-items-center bg-zinc-800 rounded-full text-sm">🌙</button><button onclick="logout()" class="px-4 py-2 bg-zinc-800 rounded-full text-sm">Logout</button></div><script>function toggleAdminDark(){document.documentElement.classList.toggle("dark"); const isDark=document.documentElement.classList.contains("dark"); localStorage.setItem("admin_dark", isDark); document.getElementById("adminDarkBtn").innerText=isDark?"☀️":"🌙";} (function(){ if(localStorage.getItem("admin_dark")==="true"){ document.documentElement.classList.add("dark"); document.getElementById("adminDarkBtn").innerText="☀️"; }})();</script>
+</div>
+
+<div id="loginBox" class="max-w-[420px] mx-auto bg-zinc-900 border border-zinc-800 rounded-[20px] p-6">
+<h3 class="font-bold text-lg mb-4">Admin Login</h3>
+<input id="a_email" class="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-sm mb-3" placeholder="Admin email">
+<input id="a_pass" type="password" class="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-sm mb-3" placeholder="Password">
+<input id="a_secret" class="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-sm mb-4" placeholder="ADMIN_SECRET from .env">
+<button onclick="adminLogin()" class="w-full py-3 bg-white text-black rounded-xl font-bold">Login</button>
+<p id="a_msg" class="mt-3 text-sm"></p>
+</div>
+
+<div id="adminBox" class="hidden">
+<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
+<div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-4"><div class="text-[11px] text-zinc-500 uppercase">Users</div><div id="st_users" class="text-2xl font-bold">-</div></div>
+<div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-4"><div class="text-[11px] text-zinc-500 uppercase">Products</div><div id="st_products" class="text-2xl font-bold">-</div></div>
+<div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-4"><div class="text-[11px] text-zinc-500 uppercase">Orders</div><div id="st_orders" class="text-2xl font-bold">-</div></div>
+<div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-4"><div class="text-[11px] text-zinc-500 uppercase">Reports</div><div id="st_reports" class="text-2xl font-bold">-</div></div>
+</div>
+
+<h3 class="font-bold text-[18px] mb-3">Users — Suspend, Ban, Unban</h3>
+<div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 mb-8">
+<div class="text-[12px] text-zinc-400 mb-3">• <b>Suspend:</b> Temporary — set days (1,3,7,30). User auto-unbans after days.<br>• <b>Ban:</b> Permanent — until you unban.<br>• <b>Unban:</b> Restore access.</div>
+<div id="usersList" class="space-y-2 max-h-[500px] overflow-auto"></div>
+</div>
+
+<h3 class="font-bold text-[18px] mb-3">Orders - Search by code</h3>
+<div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 mb-8">
+<input id="orderSearch" placeholder="Search order code MH-..." class="w-full px-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-full text-sm mb-3" oninput="searchOrders()">
+<div id="ordersList" class="space-y-2 max-h-[400px] overflow-auto"></div>
+</div>
+
+<h3 class="font-bold text-[18px] mb-3">Logs</h3>
+<div id="logsList" class="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 text-[12px] font-mono text-zinc-400 max-h-[300px] overflow-auto"></div>
+</div>
+</div>
+
+<script>
+let token=null, adminSecret='';
+async function adminLogin(){
+  const email=document.getElementById('a_email').value, password=document.getElementById('a_pass').value;
+  adminSecret=document.getElementById('a_secret').value;
+  if(!email||!password||!adminSecret) return document.getElementById('a_msg').innerText='Fill all fields';
+  let r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})});
+  let d=await r.json();
+  if(d.error){ document.getElementById('a_msg').innerText=d.error; return; }
+  if(d.user.role!=='admin'){ document.getElementById('a_msg').innerText='Not admin account'; return; }
+  token=d.token;
+  document.getElementById('loginBox').classList.add('hidden');
+  document.getElementById('adminBox').classList.remove('hidden');
+  loadStats(); loadUsers(); loadOrders();
+}
+function logout(){ localStorage.clear(); location.reload(); }
+
+async function loadStats(){
+  let r=await fetch('/api/admin/stats',{headers:{'Authorization':'Bearer '+token,'x-admin-secret':adminSecret}});
+  let d=await r.json();
+  if(d.error) return alert(d.error);
+  document.getElementById('st_users').innerText=d.totalUsers;
+  document.getElementById('st_products').innerText=d.totalProducts;
+  document.getElementById('st_orders').innerText=d.totalOrders;
+  document.getElementById('st_reports').innerText=d.totalReports;
+  document.getElementById('logsList').innerHTML=d.logs.map(l=>`[${new Date(l.time).toLocaleString()}] ${l.action} - ${l.details}`).join('<br>');
+}
+
+async function loadUsers(){
+  let r=await fetch('/api/admin/users',{headers:{'Authorization':'Bearer '+token,'x-admin-secret':adminSecret}});
+  let users=await r.json();
+  if(users.error) return document.getElementById('usersList').innerHTML=users.error;
+  document.getElementById('usersList').innerHTML=users.map(u=>{
+    const status = u.suspensionStatus||'ACTIVE';
+    const isBanned = u.isPermBanned;
+    const isSusp = u.isSuspended && !isBanned;
+    const badge = isBanned ? '<span class="px-2 py-1 bg-red-900 text-red-200 rounded-full text-[10px]">BANNED</span>' : isSusp ? `<span class="px-2 py-1 bg-amber-900 text-amber-200 rounded-full text-[10px]">${status}</span>` : '<span class="px-2 py-1 bg-green-900 text-green-200 rounded-full text-[10px]">ACTIVE</span>';
+    return `<div class="flex flex-col md:flex-row md:items-center justify-between gap-2 bg-zinc-800 rounded-xl p-3">
+      <div class="flex-1 min-w-0">
+        <div class="font-medium text-[13px] truncate">${u.username} | ${u.email} | ${u.role} | Reports:${u.reportCount||0} | Delivered:${u.deliveredCount||0}</div>
+        <div class="text-[11px] text-zinc-400 mt-1">${badge} ${status!=='ACTIVE'?status:''}</div>
+      </div>
+      <div class="flex flex-wrap gap-1.5 items-center">
+        <select id="days_${u.id}" class="px-2 py-1.5 bg-zinc-700 rounded-full text-[11px]">
+          <option value="1">1 day</option><option value="3">3 days</option><option value="7">7 days</option><option value="30">30 days</option><option value="90">90 days</option>
+        </select>
+        <input id="reason_${u.id}" placeholder="Reason" class="px-2 py-1.5 bg-zinc-700 rounded-full text-[11px] w-[110px]" value="">
+        <button onclick="suspendUser('${u.id}')" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-full text-[11px] font-medium">Suspend</button>
+        <button onclick="banUser('${u.id}')" class="px-3 py-1.5 bg-zinc-700 hover:bg-zinc-600 rounded-full text-[11px]">Ban</button>
+        <button onclick="unbanUser('${u.id}')" class="px-3 py-1.5 bg-green-700 hover:bg-green-600 text-white rounded-full text-[11px] font-bold">Unban</button>
+        <button onclick="deleteUser('${u.id}')" class="px-3 py-1.5 bg-red-800 hover:bg-red-700 text-white rounded-full text-[11px]">Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function suspendUser(id){
+  const days=document.getElementById('days_'+id).value;
+  const reason=document.getElementById('reason_'+id).value||`Suspended for ${days} day(s)`;
+  if(!confirm(`Suspend this user for ${days} day(s)?`)) return;
+  let r=await fetch('/api/admin/suspend/'+id,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token,'x-admin-secret':adminSecret},body:JSON.stringify({days,reason})});
+  let d=await r.json(); if(d.error) return alert(d.error); alert(`Suspended for ${days} days`); loadUsers();
+}
+async function banUser(id){
+  const reason=prompt('Reason for permanent ban:')||'Banned by admin';
+  let r=await fetch('/api/admin/ban/'+id,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token,'x-admin-secret':adminSecret},body:JSON.stringify({reason})});
+  let d=await r.json(); if(d.error) return alert(d.error); alert('User banned permanently'); loadUsers();
+}
+async function unbanUser(id){
+  let r=await fetch('/api/admin/unban/'+id,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token,'x-admin-secret':adminSecret}});
+  let d=await r.json(); if(d.error) return alert(d.error); alert('User unbanned - can login again'); loadUsers();
+}
+async function deleteUser(id){
+  if(!confirm('Delete user permanently?')) return;
+  let r=await fetch('/api/admin/users/'+id,{method:'DELETE',headers:{'Authorization':'Bearer '+token,'x-admin-secret':adminSecret}});
+  let d=await r.json(); if(d.error) return alert(d.error); loadUsers();
+}
+
+let allOrders=[];
+async function loadOrders(){
+  let r=await fetch('/api/admin/all-orders',{headers:{'Authorization':'Bearer '+token,'x-admin-secret':adminSecret}});
+  allOrders=await r.json();
+  renderOrders(allOrders);
+}
+function renderOrders(orders){
+  document.getElementById('ordersList').innerHTML=orders.slice(0,100).map(o=>`<div class="bg-zinc-800 rounded-xl p-3 text-[12px]"><b>${o.code}</b> - ${o.productName} - ${o.buyerName} -> ${o.sellerName} - ${o.status} - $${o.price}</div>`).join('')||'No orders';
+}
+function searchOrders(){
+  const q=document.getElementById('orderSearch').value.toLowerCase();
+  if(!q) return renderOrders(allOrders);
+  renderOrders(allOrders.filter(o=>o.code.toLowerCase().includes(q)));
+}
+</script>
+</body></html>

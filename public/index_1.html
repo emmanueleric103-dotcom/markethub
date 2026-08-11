@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MarketHub — Secure Marketplace for Hardware, Software & Tools</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script>tailwind.config={darkMode:'class'}</script>
+<style>
+*{font-family:'Inter',sans-serif}
+.glass{backdrop-filter:blur(16px)}
+/* Dark mode overrides */
+html.dark{color-scheme:dark}
+.dark body{background:#09090b !important;color:#fafafa !important}
+.dark nav{background:rgba(24,24,27,0.9) !important;border-color:#27272a !important}
+.dark .bg-white{ background-color:#18181b !important; border-color:#27272a !important; }
+.dark .bg-zinc-50{ background-color:#27272a !important; border-color:#3f3f46 !important; color:#fafafa !important; }
+.dark .bg-zinc-100{ background-color:#27272a !important; }
+.dark .bg-\[\#f8f8f9\]{ background-color:#09090b !important; }
+.dark .bg-\[\#f8f8f9\]\/90{ background-color:rgba(9,9,11,0.9) !important; }
+.dark .border-zinc-200{ border-color:#27272a !important; }
+.dark .border-zinc-100{ border-color:#27272a !important; }
+.dark .text-zinc-900{ color:#fafafa !important; }
+.dark .text-zinc-500{ color:#a1a1aa !important; }
+.dark .text-zinc-400{ color:#a1a1aa !important; }
+.dark input, .dark textarea, .dark select{background-color:#27272a !important;border-color:#3f3f46 !important;color:#fafafa !important}
+.dark input::placeholder, .dark textarea::placeholder{color:#71717a !important}
+</style>
+<script>
+// Load dark mode preference early to avoid flash
+(function(){
+  const saved=localStorage.getItem('markethub_dark');
+  if(saved==='true' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)){
+    document.documentElement.classList.add('dark');
+  }
+})();
+</script>
+
+</head>
+<body class="bg-[#f8f8f9] text-zinc-900 antialiased">
+<nav class="sticky top-0 z-50 border-b border-zinc-200 bg-white/90 backdrop-blur-xl">
+<div class="max-w-[1280px] mx-auto px-5 h-[68px] flex items-center justify-between">
+<div class="flex items-center gap-3"><div class="w-9 h-9 bg-zinc-900 text-white rounded-[12px] grid place-items-center font-black text-[16px]">M</div><div><div class="font-extrabold text-[17px] tracking-tight leading-none">MarketHub</div><div class="text-[10px] text-zinc-500 font-medium tracking-widest uppercase -mt-[2px]">Secure Trade</div></div><span id="emailStatus" class="hidden ml-3 text-[11px] px-2.5 py-1 bg-zinc-100 rounded-full font-semibold"></span></div>
+<div class="flex items-center gap-2.5">
+<button id="darkModeToggle" onclick="toggleDarkMode()" class="w-9 h-9 grid place-items-center bg-zinc-100 dark:bg-zinc-800 rounded-full text-[16px] hover:scale-105 transition" title="Toggle dark mode">🌙</button>
+<span id="userInfo" class="hidden md:block text-sm font-medium"></span>
+<button id="logoutBtn" class="hidden px-4 py-2.5 bg-zinc-900 dark:bg-white dark:text-black text-white rounded-full text-[13px] font-semibold">Sign out</button>
+</div>
+</div></nav>
+
+<div class="max-w-[1280px] mx-auto px-5 py-8">
+<div id="authBox" class="min-h-[80vh] grid place-items-center">
+<div class="w-full max-w-[480px] bg-white border border-zinc-200 rounded-[28px] p-8 md:p-10 shadow-[0_24px_80px_rgba(0,0,0,0.06)]">
+<div class="mb-8"><h1 class="text-[30px] md:text-[34px] font-[800] tracking-[-0.03em] leading-[0.95]">Buy and sell<br>with confidence.</h1><p class="mt-3 text-[14px] text-zinc-500 leading-[1.5]">Verified sellers, secure order tracking, and buyer protection for hardware, software, documents and tools.</p></div>
+
+<div class="flex gap-1.5 mb-7 p-1 bg-zinc-100 rounded-full w-fit"><button id="tabLogin" onclick="showTab('login')" class="px-5 py-2.5 rounded-full bg-zinc-900 text-white text-[13px] font-semibold">Sign in</button><button id="tabSignup" onclick="showTab('signup')" class="px-5 py-2.5 rounded-full text-[13px] font-semibold text-zinc-600">Create account</button></div>
+
+<div id="loginTab" class="space-y-3.5">
+<input id="l_email" class="w-full px-4 py-3.5 bg-zinc-50 border border-zinc-200 rounded-[14px] text-[14px] outline-none focus:border-zinc-900 focus:bg-white transition" placeholder="Email address">
+<input id="l_pass" type="password" class="w-full px-4 py-3.5 bg-zinc-50 border border-zinc-200 rounded-[14px] text-[14px] outline-none focus:border-zinc-900 focus:bg-white transition" placeholder="Password">
+<button onclick="login()" class="w-full py-3.5 bg-zinc-900 text-white rounded-[14px] font-semibold text-[14px] mt-1 hover:bg-black transition">Continue</button>
+<button onclick="openForgotModal()" class="w-full text-[13px] text-zinc-500 hover:text-zinc-900 underline mt-1">Forgot your password?</button>
+</div>
+
+<div id="signupTab" class="hidden space-y-3.5">
+<input id="s_name" class="w-full px-4 py-3.5 bg-zinc-50 border border-zinc-200 rounded-[14px] text-[14px] outline-none focus:border-zinc-900 focus:bg-white transition" placeholder="Full name">
+<input id="s_email" class="w-full px-4 py-3.5 bg-zinc-50 border border-zinc-200 rounded-[14px] text-[14px] outline-none focus:border-zinc-900 focus:bg-white transition" placeholder="Email address">
+<input id="s_phone" class="w-full px-4 py-3.5 bg-zinc-50 border border-zinc-200 rounded-[14px] text-[14px] outline-none focus:border-zinc-900 focus:bg-white transition" placeholder="Phone number (optional)">
+<select id="s_role" class="w-full px-4 py-3.5 bg-zinc-50 border border-zinc-200 rounded-[14px] text-[14px] outline-none focus:border-zinc-900 focus:bg-white transition"><option value="buyer">I want to buy products</option><option value="seller">I want to sell products</option></select>
+<input id="s_pass" type="password" class="w-full px-4 py-3.5 bg-zinc-50 border border-zinc-200 rounded-[14px] text-[14px] outline-none focus:border-zinc-900 focus:bg-white transition" placeholder="Create a password (min 6 characters)">
+
+<div class="pt-2">
+<div class="flex gap-2.5">
+<div class="flex-1 relative">
+<input id="s_otp" inputmode="numeric" maxlength="6" class="w-full px-4 py-3.5 bg-zinc-50 border border-zinc-200 rounded-[14px] text-[15px] tracking-[0.25em] font-bold outline-none focus:border-zinc-900 focus:bg-white transition" placeholder="Verification code">
+<span id="otpCheck" class="hidden absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-green-600 text-white rounded-full grid place-items-center text-[12px]">✓</span>
+</div>
+<button id="sendBtn" onclick="sendOTP('signup')" class="px-5 py-3.5 bg-zinc-900 text-white rounded-[14px] text-[13px] font-semibold whitespace-nowrap hover:bg-black transition">Send code</button>
+</div>
+
+<div id="countdownBox" class="hidden mt-3 p-3 bg-zinc-900 text-white rounded-[12px] text-[13px] font-medium flex items-center justify-between">
+<span id="countdownText">Code expires in 5:00</span>
+<div class="w-20 h-1 bg-zinc-700 rounded-full overflow-hidden ml-3"><div id="progressBar" class="h-full bg-white transition-all" style="width:100%"></div></div>
+</div>
+
+<div id="otpDisplay" class="hidden mt-3 p-4 bg-amber-50 border border-amber-200 rounded-[14px]">
+<div class="text-[11px] font-bold text-amber-800 uppercase tracking-wide">Dev mode - code for testing</div>
+<div id="otpBig" class="text-[26px] font-extrabold tracking-[0.3em] mt-1 cursor-pointer"></div>
+<div id="otpHint" class="text-[11px] text-zinc-500 mt-1"></div>
+</div>
+
+<p id="otpVerifiedMsg" class="hidden mt-2 text-[13px] text-green-700 font-medium">✓ Email verified — you can create your account now</p>
+</div>
+
+<button id="signupBtn" onclick="signup()" class="w-full py-3.5 bg-zinc-900 text-white rounded-[14px] font-semibold text-[14px] opacity-50 pointer-events-none transition">Create account</button>
+<p class="text-[11px] text-zinc-400 text-center leading-[1.4]">By creating an account, you agree to our Terms and Privacy Policy. Code valid for 5 minutes.</p>
+</div>
+
+<p id="authMsg" class="mt-4 text-[13px] font-medium"></p>
+</div></div>
+
+<div id="mainApp" class="hidden">
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8"><div><h2 id="welcome" class="text-[24px] font-bold tracking-tight"></h2><p class="text-[13px] text-zinc-500 mt-1">Track orders with your order code • Secure & verified</p></div>
+<div class="flex gap-2"><input id="searchCode" placeholder="Order code e.g. MH-XXXXXX" class="px-4 py-2.5 bg-white border border-zinc-200 rounded-full text-[13px] w-[210px] outline-none focus:border-zinc-900"><button onclick="searchOrder()" class="px-4 py-2.5 bg-zinc-900 text-white rounded-full text-[13px] font-medium">Search</button></div>
+</div>
+
+<div id="buyerSection" class="hidden">
+<div class="flex flex-wrap gap-2 mb-5"><button onclick="filterType('all')" class="typeBtn px-4 py-2 rounded-full bg-zinc-900 text-white text-[13px] font-medium">All products</button><button onclick="filterType('hardware')" class="typeBtn px-4 py-2 rounded-full bg-white border text-[13px]">Hardware</button><button onclick="filterType('software')" class="typeBtn px-4 py-2 rounded-full bg-white border text-[13px]">Software</button><button onclick="filterType('document')" class="typeBtn px-4 py-2 rounded-full bg-white border text-[13px]">Documents</button><button onclick="filterType('tool')" class="typeBtn px-4 py-2 rounded-full bg-white border text-[13px]">Tools</button></div>
+<input id="search" placeholder="Search products, categories, sellers..." oninput="loadProducts()" class="w-full mb-5 px-5 py-3.5 bg-white border border-zinc-200 rounded-[16px] text-[14px] outline-none focus:border-zinc-900 shadow-sm">
+<div id="products" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+<div class="mt-12"><h3 class="font-semibold text-[16px] mb-4">Your orders</h3><div id="buyerOrders" class="space-y-3"></div></div>
+</div>
+
+<div id="sellerSection" class="hidden">
+<!-- Mobile quick nav - only shows on phone -->
+<div class="md:hidden flex gap-2 mb-4 sticky top-[68px] z-20 bg-[#f8f8f9]/90 backdrop-blur-xl py-2">
+<button onclick="document.getElementById('sellerForm').scrollIntoView({behavior:'smooth'})" class="flex-1 py-2.5 bg-white border border-zinc-200 rounded-full text-[13px] font-medium">📝 List Product</button>
+<button onclick="document.getElementById('myProductsSection').scrollIntoView({behavior:'smooth'})" class="flex-1 py-2.5 bg-zinc-900 text-white rounded-full text-[13px] font-medium">📦 My Products</button>
+<button onclick="document.getElementById('sellerOrdersSection').scrollIntoView({behavior:'smooth'})" class="flex-1 py-2.5 bg-white border border-zinc-200 rounded-full text-[13px] font-medium">🔔 Orders</button>
+</div>
+
+<div class="flex flex-col md:grid md:grid-cols-[380px_1fr] gap-6">
+<div id="sellerForm" class="bg-white border border-zinc-200 rounded-[20px] p-6 h-fit md:sticky md:top-[84px] order-1">
+<h4 class="font-bold text-[15px] mb-5">List a new product</h4>
+<div class="space-y-3.5">
+<input id="p_name" placeholder="Product name" class="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-[12px] text-[14px] outline-none focus:border-zinc-900">
+<div class="grid grid-cols-2 gap-2.5"><input id="p_price" type="number" placeholder="Price ($)" class="px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-[12px] text-[14px] outline-none focus:border-zinc-900"><input id="p_stock" type="number" placeholder="Stock" class="px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-[12px] text-[14px] outline-none focus:border-zinc-900"></div>
+<select id="p_type" class="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-[12px] text-[14px] outline-none focus:border-zinc-900"><option value="general">General</option><option value="hardware">Hardware - requires delivery address</option><option value="software">Software / License</option><option value="document">Document / Course</option><option value="tool">Tool / Equipment</option></select>
+<input id="p_cat" placeholder="Category (e.g. Phones, Laptops)" class="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-[12px] text-[14px] outline-none focus:border-zinc-900">
+
+<div class="border border-zinc-200 rounded-[12px] p-3 bg-zinc-50">
+<label class="text-[11px] font-bold uppercase text-zinc-500 tracking-wide">Product image - upload from gallery or camera (max 5MB)</label>
+<div class="mt-2 flex gap-2">
+<input type="file" id="p_file" accept="image/*" capture="environment" class="hidden">
+<button onclick="document.getElementById('p_file').click()" class="flex-1 py-2.5 bg-white border border-zinc-200 rounded-[10px] text-[13px] font-medium">📸 Choose from gallery / camera</button>
+</div>
+<div class="mt-2 flex gap-2">
+<input id="p_image" placeholder="Or paste image URL (optional)" class="flex-1 px-3 py-2.5 bg-white border border-zinc-200 rounded-[10px] text-[13px] outline-none">
+</div>
+<img id="imgPrev" class="hidden w-full h-40 object-cover rounded-[10px] border mt-2">
+<p id="uploadStatus" class="text-[11px] text-zinc-500 mt-1"></p>
+</div>
+
+<textarea id="p_desc" placeholder="Describe your product, condition, delivery details..." class="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-[12px] text-[14px] h-24 outline-none focus:border-zinc-900"></textarea>
+<button onclick="addProduct()" class="w-full py-3.5 bg-zinc-900 text-white rounded-[12px] font-semibold text-[14px]">Publish product</button>
+</div></div>
+
+<div id="myProductsSection" class="order-2">
+<div class="flex items-center justify-between mb-4"><h4 class="font-semibold text-[15px]">Your products</h4><span id="sellerVerifiedBadge" class="hidden px-3 py-1 bg-blue-600 text-white rounded-full text-[11px] font-bold">✓ VERIFIED SELLER</span></div>
+<div id="myProducts" class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-10"></div>
+<div id="sellerOrdersSection">
+<h4 class="font-semibold text-[15px] mb-4">Incoming orders - you get email notification</h4><div id="sellerOrders" class="space-y-3"></div>
+</div>
+</div>
+</div></div>
+</div>
+
+<div id="orderModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] hidden grid place-items-center p-4">
+<div class="bg-white w-full max-w-[480px] rounded-[24px] p-6 shadow-2xl">
+<div class="flex justify-between items-start mb-5"><div><h3 class="font-bold text-[18px]">Request to buy</h3><p id="orderProdName" class="text-[13px] text-zinc-500"></p></div><button onclick="closeOrderModal()" class="w-8 h-8 grid place-items-center bg-zinc-100 rounded-full">✕</button></div>
+<div class="space-y-3.5">
+<input id="o_phone" placeholder="Your phone number - seller will contact you" class="w-full px-4 py-3.5 bg-zinc-50 border border-zinc-200 rounded-[12px] text-[14px] outline-none focus:border-zinc-900">
+<div id="addressWrap" class="hidden"><input id="o_address" placeholder="Delivery address (required for hardware)" class="w-full px-4 py-3.5 bg-zinc-50 border border-zinc-200 rounded-[12px] text-[14px] outline-none focus:border-zinc-900"></div>
+<textarea id="o_msg" placeholder="Message to seller (optional)" class="w-full px-4 py-3.5 bg-zinc-50 border border-zinc-200 rounded-[12px] text-[14px] outline-none focus:border-zinc-900"></textarea>
+<div class="flex gap-2.5 pt-1"><button onclick="closeOrderModal()" class="flex-1 py-3.5 bg-zinc-100 rounded-[12px] font-medium text-[14px]">Cancel</button><button onclick="confirmOrder()" class="flex-1 py-3.5 bg-zinc-900 text-white rounded-[12px] font-semibold text-[14px]">Confirm request</button></div>
+<p class="text-[11px] text-zinc-500 text-center">Seller and you will receive email confirmation</p>
+</div></div></div>
+
+<div id="forgotModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] hidden grid place-items-center p-4">
+<div class="bg-white w-full max-w-[440px] rounded-[24px] p-6 shadow-2xl">
+<div class="flex justify-between items-start mb-5"><div><h3 class="font-bold text-[18px]">Reset password</h3><p class="text-[13px] text-zinc-500">We'll send a code to your email</p></div><button onclick="closeForgotModal()" class="w-8 h-8 grid place-items-center bg-zinc-100 rounded-full">✕</button></div>
+<div class="space-y-3.5">
+<input id="f_email" placeholder="Email address" class="w-full px-4 py-3.5 bg-zinc-50 border border-zinc-200 rounded-[12px] text-[14px] outline-none focus:border-zinc-900">
+<div class="flex gap-2.5"><input id="f_code" inputmode="numeric" maxlength="6" placeholder="6-digit code" class="flex-1 px-4 py-3.5 bg-zinc-50 border border-zinc-200 rounded-[12px] text-[14px] tracking-[0.25em] font-bold outline-none focus:border-zinc-900"><button id="f_sendBtn" onclick="sendForgotCode()" class="px-5 py-3.5 bg-zinc-900 text-white rounded-[12px] text-[13px] font-semibold">Send code</button></div>
+<div id="f_countdown" class="hidden p-2.5 bg-zinc-900 text-white rounded-[10px] text-[12px] font-medium"></div>
+<div id="f_otpDisplay" class="hidden p-3 bg-amber-50 border border-amber-200 rounded-[12px]"><div id="f_otpBig" class="font-bold text-[18px] tracking-widest"></div><div class="text-[11px] text-zinc-500">Dev mode code</div></div>
+<input id="f_newpass" type="password" placeholder="New password (min 6 characters)" class="w-full px-4 py-3.5 bg-zinc-50 border border-zinc-200 rounded-[12px] text-[14px] outline-none focus:border-zinc-900">
+<button onclick="doResetPassword()" class="w-full py-3.5 bg-zinc-900 text-white rounded-[12px] font-semibold text-[14px]">Update password</button>
+<p id="f_msg" class="text-[13px] font-medium"></p>
+</div></div></div>
+
+<div id="notifBox" class="fixed bottom-5 right-5 z-[200] space-y-2 w-[340px] max-w-[90vw]"></div>
+</div>
+
+<script>
+function toggleDarkMode(){
+  const html=document.documentElement;
+  const isDark=html.classList.toggle('dark');
+  localStorage.setItem('markethub_dark', isDark);
+  const btn=document.getElementById('darkModeToggle');
+  if(btn) btn.innerText=isDark?'☀️':'🌙';
+}
+(function(){
+  const btn=document.getElementById('darkModeToggle');
+  const isDark=document.documentElement.classList.contains('dark');
+  if(btn) btn.innerText=isDark?'☀️':'🌙';
+})();
+</script>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="app.js"></script>
+</body></html>
